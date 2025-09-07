@@ -1,4 +1,4 @@
-# StellarNexus
+# GitHub Top Stars Tracker
 
 > AI-Powered Predictive Analytics for the GitHub Universe
 
@@ -20,17 +20,15 @@ We solve this with:
 - ✅ **Anomaly detection** to identify organic vs artificial growth
 - ✅ **Live leaderboard** and visualizations updated daily
 
-## 📊 Live Leaderboard (Top 10)
+## 📊 Current Top 10 Repositories
 
-*Table updates automatically every 24 hours*
-
-| Rank | Repository | Stars | Today | Forecast |
-|------|------------|-------|-------|----------|
+| Rank | Repository | Stars | Stars Gained | Description |
+|------|------------|-------|--------------|-------------|
 | *Data loading...* | | | | |
 
-## 📈 Growth Trends
+## 📈 Star Growth Chart
 
-![Star Growth Chart](docs/assets/stars_trend.png)
+![Star Growth](docs/assets/stars_trend.png)
 
 ---
 
