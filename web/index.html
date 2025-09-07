@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StellarNexus - GitHub Top Stars Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .chart-container h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .repos-table {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .repos-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .repos-table th,
+        .repos-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .repos-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .repos-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .repo-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .repo-link:hover {
+            text-decoration: underline;
+        }
+
+        .rank {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .stars {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 20px 0;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .refresh-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 StellarNexus</h1>
+            <p>AI-Powered GitHub Top Stars Tracker</p>
+        </div>
+
+        <button id="refreshBtn" class="refresh-btn">
+            🔄 Refresh Data
+        </button>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>📊 Total Repositories</h3>
+                <div class="value" id="totalRepos">--</div>
+                <div class="label">Top 10 tracked</div>
+            </div>
+            <div class="stat-card">
+                <h3>⭐ Average Stars</h3>
+                <div class="value" id="avgStars">--</div>
+                <div class="label">Per repository</div>
+            </div>
+            <div class="stat-card">
+                <h3>🏆 Top Repository</h3>
+                <div class="value" id="topRepo">--</div>
+                <div class="label">Most starred</div>
+            </div>
+            <div class="stat-card">
+                <h3>🕒 Last Updated</h3>
+                <div class="value" id="lastUpdate">--</div>
+                <div class="label">Data freshness</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>📈 Star Growth Trends</h2>
+            <canvas id="trendChart" width="400" height="200"></canvas>
+        </div>
+
+        <div class="repos-table">
+            <table id="reposTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Repository</th>
+                        <th>⭐ Stars</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody id="reposBody">
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px;">
+                            Loading repositories...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Built with ❤️ using Python, FastAPI, and Chart.js | Auto-updated daily</p>
+    </div>
+
+    <script>
+        let trendChart = null;
+
+        async function loadData() {
+            try {
+                const [analyticsResponse, reposResponse] = await Promise.all([
+                    fetch('/api/analytics'),
+                    fetch('/api/top-repos')
+                ]);
+
+                const analytics = await analyticsResponse.json();
+                const repos = await reposResponse.json();
+
+                updateStats(analytics);
+                updateTable(repos);
+                updateChart(repos);
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Failed to load data. Please try again later.');
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('totalRepos').textContent = data.total_repositories;
+            document.getElementById('avgStars').textContent = data.avg_stars.toLocaleString();
+            document.getElementById('topRepo').textContent = data.top_gainer ? data.top_gainer.name : 'N/A';
+            document.getElementById('lastUpdate').textContent = new Date(data.last_updated).toLocaleString();
+        }
+
+        function updateTable(repos) {
+            const tbody = document.getElementById('reposBody');
+            tbody.innerHTML = '';
+
+            repos.forEach(repo => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="rank">${repo.rank}</span></td>
+                    <td><a href="${repo.url}" class="repo-link" target="_blank">${repo.name}</a></td>
+                    <td class="stars">${repo.stars.toLocaleString()}</td>
+                    <td>${repo.description || 'No description available'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateChart(repos) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+
+            if (trendChart) {
+                trendChart.destroy();
+            }
+
+            const labels = repos.map(repo => repo.name);
+            const data = repos.map(repo => repo.stars);
+
+            trendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Stars',
+                        data: data,
+                        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function showError(message) {
+            const tbody = document.getElementById('reposBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: #e74c3c;">
+                        ${message}
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Refresh button functionality
+        document.getElementById('refreshBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.textContent;
+
+            btn.disabled = true;
+            btn.innerHTML = '🔄 Refreshing...<span class="loading"></span>';
+
+            try {
+                const response = await fetch('/api/refresh-data', { method: 'POST' });
+                const result = await response.json();
+
+                if (response.ok) {
+                    await loadData(); // Reload data after refresh
+                    alert('Data refreshed successfully!');
+                } else {
+                    throw new Error(result.detail || 'Refresh failed');
+                }
+            } catch (error) {
+                console.error('Refresh error:', error);
+                alert('Failed to refresh data: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+
+        // Load data on page load
+        loadData();
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

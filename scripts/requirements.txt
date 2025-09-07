@@ -1,3 +1,16 @@
 requests
 pandas
 matplotlib
+fastapi
+uvicorn
+sqlalchemy
+alembic
+psycopg2-binary
+redis
+pydantic
+python-multipart
+jinja2
+python-jose[cryptography]
+passlib[bcrypt]
+celery
+flower
