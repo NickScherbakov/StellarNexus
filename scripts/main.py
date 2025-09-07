@@ -110,13 +110,10 @@ def update_readme(today_data):
     if not today_data:
         return
     
-    # Load existing README or create basic structure
+    # Load existing README
     readme_path = 'README.md'
-    if os.path.exists(readme_path):
-        with open(readme_path, 'r') as f:
-            content = f.read()
-    else:
-        content = "# GitHub Top Stars Tracker\n\n## Current Top 10 Repositories\n\n| Rank | Repository | Stars | Description |\n|------|------------|-------|-------------|\n\n## Star Growth Chart\n\n![Star Growth](docs/assets/stars_trend.png)\n"
+    with open(readme_path, 'r') as f:
+        content = f.read()
     
     # Calculate star gains (if previous data exists)
     star_gains = {}
@@ -147,10 +144,9 @@ def update_readme(today_data):
     
     table = "\n".join(table_lines)
     
-    # Replace table in README
-    import re
-    pattern = r'## Current Top 10 Repositories\n\n\|.*?\n\|.*?\n(?:\|.*?\n)*'
-    new_content = re.sub(pattern, f'## Current Top 10 Repositories\n\n{table}\n', content, flags=re.DOTALL)
+    # Replace the placeholder table in README
+    old_table = "| Rank | Repository | Stars | Stars Gained | Description |\n|------|------------|-------|--------------|-------------|\n| *Data loading...* | | | | |"
+    new_content = content.replace(old_table, table)
     
     with open(readme_path, 'w') as f:
         f.write(new_content)
