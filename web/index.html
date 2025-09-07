@@ -196,6 +196,143 @@
             margin-top: 40px;
             opacity: 0.8;
         }
+
+        /* ML Section Styles */
+        .ml-section {
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .ml-section h2 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .ml-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .ml-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .ml-card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+        }
+
+        .predictions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .prediction-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .prediction-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .prediction-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .metric {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .metric .label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .metric .value {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .metric.growth-positive .value {
+            color: #27ae60;
+        }
+
+        .metric.growth-negative .value {
+            color: #e74c3c;
+        }
+
+        .confidence-interval {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .insights-list {
+            margin-bottom: 20px;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .insight-icon {
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+
+        .trend-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .trend-stats .stat {
+            text-align: center;
+        }
+
+        .trend-stats .label {
+            font-size: 0.9rem;
+            color: #666;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .trend-stats .value {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -255,6 +392,48 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- AI/ML Predictions Section -->
+        <div class="ml-section">
+            <h2>🤖 AI-Powered Predictions</h2>
+
+            <div class="ml-grid">
+                <div class="ml-card">
+                    <h3>🔮 Top Growth Predictions</h3>
+                    <div id="mlPredictions" class="predictions-container">
+                        <p>Loading AI predictions...</p>
+                    </div>
+                </div>
+
+                <div class="ml-card">
+                    <h3>📊 ML Insights</h3>
+                    <div class="insights-list">
+                        <div class="insight-item">
+                            <span class="insight-icon">💡</span>
+                            <span id="insight1">Loading insights...</span>
+                        </div>
+                        <div class="insight-item">
+                            <span class="insight-icon">📈</span>
+                            <span id="insight2">Loading insights...</span>
+                        </div>
+                        <div class="insight-item">
+                            <span class="insight-icon">🎯</span>
+                            <span id="insight3">Loading insights...</span>
+                        </div>
+                    </div>
+                    <div class="trend-stats">
+                        <div class="stat">
+                            <span class="label">Avg Growth Rate:</span>
+                            <span class="value" id="avgGrowthRate">--</span>
+                        </div>
+                        <div class="stat">
+                            <span class="label">Top Language:</span>
+                            <span class="value" id="topLanguage">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -394,6 +573,75 @@
 
         // Auto-refresh every 5 minutes
         setInterval(loadData, 5 * 60 * 1000);
+
+        // ML Prediction functionality
+        async function loadMLPredictions() {
+            try {
+                const response = await fetch('/api/ml/top-predictions?limit=5');
+                const predictions = await response.json();
+
+                const container = document.getElementById('mlPredictions');
+                container.innerHTML = '';
+
+                predictions.forEach(pred => {
+                    const card = document.createElement('div');
+                    card.className = 'prediction-card';
+                    card.innerHTML = `
+                        <h4>${pred.repository}</h4>
+                        <div class="prediction-metrics">
+                            <div class="metric">
+                                <span class="label">Current:</span>
+                                <span class="value">${pred.current_stars.toLocaleString()}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="label">Predicted (30d):</span>
+                                <span class="value">${pred.predicted_stars_30d.toLocaleString()}</span>
+                            </div>
+                            <div class="metric growth-${pred.growth_rate_percent > 0 ? 'positive' : 'negative'}">
+                                <span class="label">Growth:</span>
+                                <span class="value">${pred.growth_rate_percent > 0 ? '+' : ''}${pred.growth_rate_percent}%</span>
+                            </div>
+                        </div>
+                        <div class="confidence-interval">
+                            Confidence: ${pred.confidence_interval.lower.toLocaleString()} - ${pred.confidence_interval.upper.toLocaleString()}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('ML prediction error:', error);
+                document.getElementById('mlPredictions').innerHTML = '<p>ML predictions unavailable</p>';
+            }
+        }
+
+        async function loadMLInsights() {
+            try {
+                const response = await fetch('/api/ml/insights');
+                const insights = await response.json();
+
+                // Update insights display
+                document.getElementById('insight1').textContent = insights.trends.insights[0] || 'Loading...';
+                document.getElementById('insight2').textContent = insights.trends.insights[1] || 'Loading...';
+                document.getElementById('insight3').textContent = insights.trends.insights[2] || 'Loading...';
+
+                // Update trend stats
+                document.getElementById('avgGrowthRate').textContent = insights.trends.avg_growth_rate.toFixed(2);
+                document.getElementById('topLanguage').textContent = Object.keys(insights.trends.language_distribution)[0] || 'N/A';
+
+            } catch (error) {
+                console.error('ML insights error:', error);
+            }
+        }
+
+        // Load ML data
+        loadMLPredictions();
+        loadMLInsights();
+
+        // Refresh ML data every 10 minutes
+        setInterval(() => {
+            loadMLPredictions();
+            loadMLInsights();
+        }, 10 * 60 * 1000);
     </script>
 </body>
 </html>

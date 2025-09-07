@@ -177,6 +177,107 @@ async def health_check():
         "version": "1.0.0"
     }
 
+# AI/ML Endpoints
+from scripts.ml_predictor import predictor, get_ml_insights
+
+class MLPredictionResponse(BaseModel):
+    repository: str
+    current_stars: int
+    predicted_stars_30d: int
+    predicted_growth: int
+    growth_rate_percent: float
+    confidence_interval: dict
+    days_ahead: int
+    prediction_date: str
+
+class MLInsightsResponse(BaseModel):
+    training_results: dict
+    top_predictions: List[MLPredictionResponse]
+    trends: dict
+    timestamp: str
+
+@app.get("/api/ml/predict/{repo_name}", response_model=MLPredictionResponse)
+async def predict_repository_growth(repo_name: str):
+    """Predict growth for a specific repository"""
+    try:
+        # Load repository data
+        if os.path.exists('data/github_top_20250907_124243.json'):
+            with open('data/github_top_20250907_124243.json', 'r') as f:
+                repos_data = json.load(f)
+
+            # Find repository
+            repo_data = None
+            for repo in repos_data:
+                if repo['name'].lower() == repo_name.lower():
+                    repo_data = repo
+                    break
+
+            if repo_data:
+                prediction = predictor.predict_future_growth(repo_data)
+                if 'error' in prediction:
+                    raise HTTPException(status_code=500, detail=prediction['error'])
+                return prediction
+            else:
+                raise HTTPException(status_code=404, detail=f"Repository '{repo_name}' not found")
+        else:
+            raise HTTPException(status_code=404, detail="Repository data not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ml/insights", response_model=MLInsightsResponse)
+async def get_ml_insights_endpoint():
+    """Get comprehensive ML insights and predictions"""
+    try:
+        insights = get_ml_insights()
+        if 'error' in insights:
+            raise HTTPException(status_code=500, detail=insights['error'])
+        return insights
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ml/top-predictions", response_model=List[MLPredictionResponse])
+async def get_top_predictions(limit: int = 10):
+    """Get top predicted performers"""
+    try:
+        df = predictor.load_historical_data()
+        if df.empty:
+            return []
+
+        predictions = predictor.predict_top_performers(df, limit)
+        return predictions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ml/trends")
+async def get_ml_trends():
+    """Get ML-powered trend analysis"""
+    try:
+        df = predictor.load_historical_data()
+        if df.empty:
+            raise HTTPException(status_code=404, detail="No data available")
+
+        trends = predictor.analyze_trends(df)
+        return trends
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ml/train")
+async def train_ml_model():
+    """Train ML models with latest data"""
+    try:
+        df = predictor.load_historical_data()
+        if df.empty:
+            raise HTTPException(status_code=404, detail="No data available for training")
+
+        results = predictor.train_growth_prediction_model(df)
+        return {
+            "message": "ML model training completed",
+            "results": results,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     # Mount static files
     if os.path.exists('docs/assets'):
