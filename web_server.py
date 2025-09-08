@@ -9,6 +9,7 @@ import sys
 import subprocess
 from pathlib import Path
 
+
 def main():
     """Launch the FastAPI web server"""
     # Add the api directory to Python path
@@ -26,12 +27,17 @@ def main():
 
     # Launch uvicorn with auto-reload
     cmd = [
-        sys.executable, "-m", "uvicorn",
+        sys.executable,
+        "-m",
+        "uvicorn",
         "api.main:app",
-        "--host", "0.0.0.0",
-        "--port", "8000",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
         "--reload",
-        "--log-level", "info"
+        "--log-level",
+        "info",
     ]
 
     try:
@@ -41,6 +47,7 @@ def main():
     except subprocess.CalledProcessError as e:
         print(f"❌ Failed to start server: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
