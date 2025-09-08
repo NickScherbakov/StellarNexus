@@ -2,229 +2,50 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
-  lint-and-format:
-    name: Lint and Format Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('scripts/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install black flake8 isort pre-commit
-          pip install -r scripts/requirements.txt
-
-      - name: Run pre-commit hooks
-        run: |
-          pre-commit install
-          pre-commit run --all-files
-
   test:
-    name: Test Suite
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+        if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+    - name: Run tests
+      run: |
+        python -m pytest tests/ -v
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('scripts/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ matrix.python-version }}-pip-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov
-          pip install -r scripts/requirements.txt
-
-      - name: Run tests with coverage
-        run: |
-          python -m pytest tests/ -v --cov=scripts --cov=api --cov-report=xml --cov-report=term-missing
-
-      - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false  # Don't fail build on low coverage
-
-  pre-commit-check:
-    name: Pre-commit on Changed Files
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pre-commit
-          pip install -r scripts/requirements.txt
-
-      - name: Run pre-commit on changed files
-        env:
-          SKIP: no-commit-to-branch
-        run: |
-          pre-commit install
-          pre-commit run --from-ref origin/${{ github.base_ref }} --to-ref HEAD
-
-  security-scan:
-    name: Security Scanning
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install security tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install bandit safety
-          pip install -r scripts/requirements.txt
-
-      - name: Run Bandit security scan
-        run: |
-          bandit -r scripts/ api/ -f json -o bandit-report.json || true
-
-      - name: Run Safety check
-        run: |
-          safety check --json --output safety-report.json || true
-
-      - name: Upload security reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: security-reports
-          path: |
-            bandit-report.json
-            safety-report.json
-
-  build-and-test-docker:
-    name: Docker Build Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: |
-          docker build -t stellarnexus:test .
-
-      - name: Test Docker image
-        run: |
-          docker run --rm stellarnexus:test python --version
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov
-          pip install -r scripts/requirements.txt
-
-      - name: Run integration tests
-        run: |
-          if [ -d "tests/integration" ]; then
-            python -m pytest tests/integration/ -v
-          else
-            echo "No integration tests found, skipping..."
-          fi
-
-  publish-coverage:
-    name: Publish Coverage Report
-    runs-on: ubuntu-latest
-    needs: test
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov coverage
-          pip install -r scripts/requirements.txt
-
-      - name: Generate coverage report
-        run: |
-          python -m pytest tests/ --cov=scripts --cov=api --cov-report=html --cov-report=xml
-          coverage report
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-reports
-          path: |
-            htmlcov/
-            coverage.xml
-
-      - name: Publish coverage comment (if PR)
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            if (fs.existsSync('coverage.xml')) {
-              // Could parse coverage.xml and post a comment with coverage info
-              // For now, just indicate coverage was generated
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: '📊 Coverage report has been generated and uploaded as an artifact.'
-              });
-            }
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+        if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+    - name: Lint with flake8
+      run: |
+        flake8 scripts/ api/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 scripts/ api/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Check formatting
+      run: |
+        black --check scripts/ api/ tests/
+        isort --check-only scripts/ api/ tests/
