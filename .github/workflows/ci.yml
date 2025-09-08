@@ -1,272 +1,287 @@
+---
 name: 🔍 CI - Code Quality & Validation
 
-on:
+"on":
   push:
-    branches: [ main, develop, 'feature/*', 'bugfix/*', 'hotfix/*' ]
+    branches: [main, develop, 'feature/*', 'bugfix/*', 'hotfix/*']
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
   PYTHON_VERSION: '3.11'
 
 jobs:
-  # Code quality and linting
   code-quality:
     name: 🧹 Code Quality & Linting
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: 📦 Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 black isort mypy bandit safety
-        if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        
-    - name: 🔍 Code formatting check (Black)
-      run: |
-        black --check --diff scripts/ api/ tests/
-        
-    - name: 📏 Import sorting check (isort)
-      run: |
-        isort --check-only --diff scripts/ api/ tests/
-        
-    - name: 🚨 Linting (flake8)
-      run: |
-        flake8 scripts/ api/ tests/ --max-line-length=88 --extend-ignore=E203,W503
-        
-    - name: 🔒 Security check (Bandit)
-      run: |
-        bandit -r scripts/ api/ -f json -o bandit-report.json || true
-        bandit -r scripts/ api/
-        
-    - name: 🛡️ Dependency security check (Safety)
-      run: |
-        safety check --json --output safety-report.json || true
-        safety check
-        
-    - name: 📤 Upload security reports
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: security-reports
-        path: |
-          bandit-report.json
-          safety-report.json
 
-  # Type checking
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort mypy bandit safety
+          if [ -f scripts/requirements.txt ]; then
+            pip install -r scripts/requirements.txt
+          fi
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: 🔍 Code formatting check (Black)
+        run: |
+          black --check --diff scripts/ api/ tests/
+
+      - name: 📏 Import sorting check (isort)
+        run: |
+          isort --check-only --diff scripts/ api/ tests/
+
+      - name: 🚨 Linting (flake8)
+        run: |
+          flake8 scripts/ api/ tests/ --max-line-length=88 \
+            --extend-ignore=E203,W503
+
+      - name: 🔒 Security check (Bandit)
+        run: |
+          bandit -r scripts/ api/ -f json -o bandit-report.json || true
+          bandit -r scripts/ api/
+
+      - name: 🛡️ Dependency security check (Safety)
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check
+
+      - name: 📤 Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
   type-check:
     name: 🏷️ Type Checking
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: 📦 Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install mypy types-requests types-redis
-        if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        
-    - name: 🏷️ Type checking (MyPy)
-      run: |
-        mypy scripts/ api/ --ignore-missing-imports --show-error-codes
 
-  # Validate project structure and files
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy types-requests types-redis
+          if [ -f scripts/requirements.txt ]; then
+            pip install -r scripts/requirements.txt
+          fi
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: 🏷️ Type checking (MyPy)
+        run: |
+          mypy scripts/ api/ --ignore-missing-imports --show-error-codes
+
   validate-structure:
     name: 📋 Validate Project Structure
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🔍 Check required files
-      run: |
-        echo "Checking for required files..."
-        required_files=(
-          "README.md"
-          "LICENSE"
-          ".gitignore"
-          "docker-compose.yml"
-          "Dockerfile"
-          "scripts/requirements.txt"
-        )
-        
-        for file in "${required_files[@]}"; do
-          if [ ! -f "$file" ]; then
-            echo "❌ Missing required file: $file"
-            exit 1
-          else
-            echo "✅ Found: $file"
-          fi
-        done
-        
-    - name: 🏗️ Validate Docker setup
-      run: |
-        docker-compose config
-        
-    - name: 📝 Check documentation
-      run: |
-        if [ ! -d "docs/" ]; then
-          echo "❌ Missing docs directory"
-          exit 1
-        fi
-        
-        if [ ! -f "docs/TAGGING.md" ]; then
-          echo "❌ Missing TAGGING.md documentation"
-          exit 1
-        fi
-        
-        echo "✅ Documentation structure is valid"
 
-  # Basic health checks
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check required files
+        run: |
+          echo "Checking for required files..."
+          required_files=(
+            "README.md"
+            "LICENSE"
+            ".gitignore"
+            "docker-compose.yml"
+            "Dockerfile"
+            "scripts/requirements.txt"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+
+      - name: 🏗️ Validate Docker setup
+        run: |
+          docker-compose config
+
+      - name: 📝 Check documentation
+        run: |
+          if [ ! -d "docs/" ]; then
+            echo "❌ Missing docs directory"
+            exit 1
+          fi
+
+          if [ ! -f "docs/TAGGING.md" ]; then
+            echo "❌ Missing TAGGING.md documentation"
+            exit 1
+          fi
+
+          echo "✅ Documentation structure is valid"
+
   health-checks:
     name: 🏥 Health Checks
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: 📦 Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-        
-    - name: 🔍 Syntax check
-      run: |
-        python -m py_compile scripts/*.py api/*.py
-        
-    - name: 🧪 Import check
-      run: |
-        cd scripts && python -c "
-        import sys
-        modules = ['main', 'ml_predictor']
-        for module in modules:
-            try:
-                __import__(module)
-                print(f'✅ {module} imports successfully')
-            except ImportError as e:
-                print(f'❌ {module} import failed: {e}')
-                sys.exit(1)
-        "
 
-  # Commit message validation
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f scripts/requirements.txt ]; then
+            pip install -r scripts/requirements.txt
+          fi
+
+      - name: 🔍 Syntax check
+        run: |
+          python -m py_compile scripts/*.py api/*.py
+
+      - name: 🧪 Import check
+        run: |
+          cd scripts && python -c "
+          import sys
+          modules = ['main', 'ml_predictor']
+          for module in modules:
+              try:
+                  __import__(module)
+                  print(f'✅ {module} imports successfully')
+              except ImportError as e:
+                  print(f'❌ {module} import failed: {e}')
+                  sys.exit(1)
+          "
+
   commit-validation:
     name: 📝 Commit Message Validation
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - name: 🔍 Validate commit messages
-      run: |
-        # Get commits in the PR
-        commits=$(git rev-list --reverse HEAD^..HEAD)
-        
-        for commit in $commits; do
-          message=$(git log --format=%B -n 1 $commit)
-          echo "Checking commit: $commit"
-          echo "Message: $message"
-          
-          # Check if commit message follows conventional format
-          if ! echo "$message" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|ci)(\(.+\))?: .+"; then
-            echo "❌ Commit message doesn't follow conventional format"
-            echo "Expected format: type(scope): description"
-            echo "Types: feat, fix, docs, style, refactor, test, chore, ci"
-            exit 1
-          fi
-        done
-        
-        echo "✅ All commit messages are valid"
 
-  # Security and dependency audit
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Validate commit messages
+        run: |
+          # Get commits in the PR
+          commits=$(git rev-list --reverse HEAD^..HEAD)
+
+          for commit in $commits; do
+            message=$(git log --format=%B -n 1 $commit)
+            echo "Checking commit: $commit"
+            echo "Message: $message"
+
+            # Check if commit message follows conventional format
+            pattern="^(feat|fix|docs|style|refactor|test|chore|ci)"
+            pattern="${pattern}(\(.+\))?: .+"
+            if ! echo "$message" | grep -qE "$pattern"; then
+              echo "❌ Commit message doesn't follow conventional format"
+              echo "Expected format: type(scope): description"
+              echo "Types: feat, fix, docs, style, refactor, test, chore, ci"
+              exit 1
+            fi
+          done
+
+          echo "✅ All commit messages are valid"
+
   security-audit:
     name: 🔐 Security Audit
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: 📦 Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pip-audit
-        if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
-        
-    - name: 🔍 Audit dependencies
-      run: |
-        pip-audit --format=json --output=pip-audit-report.json || true
-        pip-audit
-        
-    - name: 📤 Upload audit report
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: pip-audit-report
-        path: pip-audit-report.json
 
-  # Summary job
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
+          if [ -f scripts/requirements.txt ]; then
+            pip install -r scripts/requirements.txt
+          fi
+
+      - name: 🔍 Audit dependencies
+        run: |
+          pip-audit --format=json --output=pip-audit-report.json || true
+          pip-audit
+
+      - name: 📤 Upload audit report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+
   ci-summary:
     name: 📊 CI Summary
     runs-on: ubuntu-latest
-    needs: [code-quality, type-check, validate-structure, health-checks, security-audit]
+    needs: [code-quality, type-check, validate-structure, health-checks,
+            security-audit]
     if: always()
-    
+
     steps:
-    - name: 📋 Check results
-      run: |
-        echo "## CI Results Summary" >> $GITHUB_STEP_SUMMARY
-        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Type Check | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Structure Validation | ${{ needs.validate-structure.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Health Checks | ${{ needs.health-checks.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY
-        
-        # Check if all jobs passed
-        if [[ "${{ needs.code-quality.result }}" == "success" && 
-              "${{ needs.type-check.result }}" == "success" && 
-              "${{ needs.validate-structure.result }}" == "success" && 
-              "${{ needs.health-checks.result }}" == "success" && 
-              "${{ needs.security-audit.result }}" == "success" ]]; then
-          echo "✅ All CI checks passed!"
-          echo "## ✅ All CI checks passed!" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Some CI checks failed!"
-          echo "## ❌ Some CI checks failed!" >> $GITHUB_STEP_SUMMARY
-          exit 1
-        fi
+      - name: 📋 Check results
+        run: |
+          echo "## CI Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} |" \
+            >> $GITHUB_STEP_SUMMARY
+          echo "| Type Check | ${{ needs.type-check.result }} |" \
+            >> $GITHUB_STEP_SUMMARY
+          echo "| Structure Validation | ${{ needs.validate-structure.result }} |" \
+            >> $GITHUB_STEP_SUMMARY
+          echo "| Health Checks | ${{ needs.health-checks.result }} |" \
+            >> $GITHUB_STEP_SUMMARY
+          echo "| Security Audit | ${{ needs.security-audit.result }} |" \
+            >> $GITHUB_STEP_SUMMARY
+
+          # Check if all jobs passed
+          if [[ "${{ needs.code-quality.result }}" == "success" &&
+                "${{ needs.type-check.result }}" == "success" &&
+                "${{ needs.validate-structure.result }}" == "success" &&
+                "${{ needs.health-checks.result }}" == "success" &&
+                "${{ needs.security-audit.result }}" == "success" ]]; then
+            echo "✅ All CI checks passed!"
+            echo "## ✅ All CI checks passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some CI checks failed!"
+            echo "## ❌ Some CI checks failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
