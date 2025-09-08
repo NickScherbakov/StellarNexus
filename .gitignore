@@ -9,9 +9,17 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.pytest_cache/
 
 # Data files (generated)
 data/*.json
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
 
 # IDE
 .vscode/
@@ -22,3 +30,15 @@ data/*.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Security reports
+bandit-report.json
+safety-report.json
+
+# Pre-commit
+.pre-commit-cache/
